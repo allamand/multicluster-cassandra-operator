@@ -11,10 +11,9 @@ import (
 // CassandraMultiClusterSpec defines the desired state of CassandraMultiCluster
 // +k8s:openapi-gen=true
 type CassandraMultiClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
-	CassandraCluster []apicc.CassandraCluster `json:"cassandraCluster,omitempty"`
+	Base apicc.CassandraCluster `json:"base,omitempty"`
+	CassandraCluster map[string]apicc.CassandraCluster `json:"cassandraCluster,omitempty"`
+
 }
 
 // CassandraMultiClusterStatus defines the observed state of CassandraMultiCluster

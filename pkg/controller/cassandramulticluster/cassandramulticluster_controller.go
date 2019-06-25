@@ -35,58 +35,70 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-type ClustersConf struct {
-	index int
-	cluster *cluster.Cluster
-	//clients *client.Client
+type Clusters struct {
+	Name    string
+	Cluster *cluster.Cluster
+	}
+type Clients struct {
+	name   string
+	client client.Client
 }
 
 type reconciler struct {
-	clients   map[string]client.Client
+	clients   []*Clients
 	cmc       *cmcv1.CassandraMultiCluster
 	namespace string
 }
 
-func NewController(clusters map[string]ClustersConf, namespace string) (*controller.Controller, error) {
-	var clients = map[string]client.Client
-	for key, value := range clusters {
-		logrus.Info("Create Client %d for cluster %s", value.index, key)
-		client, err := value.cluster.GetDelegatingClient()
+func NewController(clusters []Clusters, namespace string) (*controller.Controller, error) {
+
+	var clients []*Clients
+	for i, value := range clusters {
+		logrus.Infof("Create Client %d for Cluster %s", i+1, value.Name)
+		client, err := value.Cluster.GetDelegatingClient()
 		if err != nil {
-			return nil, fmt.Errorf("getting delegating client %d for cluster %s cluster: %v", value.index, key, err)
+			return nil, fmt.Errorf("getting delegating client %d for Cluster %s Cluster: %v", i, value.Name,
+				err)
 		}
 
-		clients[key] = client
+		clients = append(clients, &Clients{value.Name,client})
 
-		logrus.Infof("Add CRDs to cluster %s Scheme", key)
-		if err := apicc.AddToScheme(value.cluster.GetScheme()); err != nil {
-			return nil, fmt.Errorf("adding APIs CassandraCluster to cluster %s cluster's scheme: %v", key, err)
+		logrus.Infof("Add CRDs to Cluster %s Scheme", value.Name)
+		if err := apicc.AddToScheme(value.Cluster.GetScheme()); err != nil {
+			return nil, fmt.Errorf("adding APIs CassandraCluster to Cluster %s Cluster's scheme: %v", value.Name, err)
 		}
-		if err := apicmc.AddToScheme(value.cluster.GetScheme()); err != nil {
-			return nil, fmt.Errorf("adding APIs CassandraMultiCluster to cluster %s cluster's scheme: %v", key, err)
+		if err := apicmc.AddToScheme(value.Cluster.GetScheme()); err != nil {
+			return nil, fmt.Errorf("adding APIs CassandraMultiCluster to Cluster %s Cluster's scheme: %v", value.Name,
+				err)
 		}
 
 	}
 
 	co := controller.New(&reconciler{clients: clients, namespace: namespace}, controller.Options{})
 
-	for key, value := range clusters {
-		//Demande au controlleur de faire un Watch des ressources de type Pod
-		logrus.Info("Configuring Watch for CassandraMultiCluster")
-		if err := co.WatchResourceReconcileObject(value.cluster, &cmcv1.CassandraMultiCluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace}},
-			controller.WatchOptions{}); err != nil {
-			return nil, fmt.Errorf("setting up CassandraMultiCluster watch in cluster %s cluster: %v", key, err)
+	for i, value := range clusters {
+
+		//for now only watch in the first cluster
+		if i >0{
+			break
 		}
 
-		// Note: At the moment, all clients share the same scheme under the hood
-		// (k8s.io/client-go/kubernetes/scheme.Scheme), yet multicluster-controller gives each cluster a scheme pointer.
-		// Therefore, if we needed a custom resource in multiple clients, we would redundantly
-		// add it to each cluster's scheme, which points to the same underlying scheme.
+		//Demande au controlleur de faire un Watch des ressources de type Pod
+		logrus.Info("Configuring Watch for CassandraMultiCluster")
+		if err := co.WatchResourceReconcileObject(value.Cluster, &cmcv1.CassandraMultiCluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace}},
+			controller.WatchOptions{}); err != nil {
+			return nil, fmt.Errorf("setting up CassandraMultiCluster watch in Cluster %s Cluster: %v", value.Name, err)
+		}
+
+		// Note: At the moment, all client share the same scheme under the hood
+		// (k8s.io/client-go/kubernetes/scheme.Scheme), yet multicluster-controller gives each Cluster a scheme pointer.
+		// Therefore, if we needed a custom resource in multiple client, we would redundantly
+		// add it to each Cluster's scheme, which points to the same underlying scheme.
 
 		//SEB: TODO - pas sur de comprendre a quoi sert celui la ??
-		if err := co.WatchResourceReconcileController(value.cluster, &cmcv1.CassandraMultiCluster{},
+		if err := co.WatchResourceReconcileController(value.Cluster, &cmcv1.CassandraMultiCluster{},
 			controller.WatchOptions{}); err != nil {
-			return nil, fmt.Errorf("setting up CassandraMultiCluster watch in cluster %s cluster: %v", key, err)
+			return nil, fmt.Errorf("setting up CassandraMultiCluster watch in Cluster %s Cluster: %v", value.Name, err)
 		}
 	}
 	return co, nil
@@ -102,16 +114,17 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	forget := reconcile.Result{}
 
 	if req.Namespace != r.namespace{
-		return reconcile.Result{}, nil
+		return forget, nil
 	}
 
 
 	logrus.Infof("Reconcile %v.", req)
 
 	// Fetch the CassandraCluster instance
+	// It is stored in the Cluster with index 0
 	r.cmc = &cmcv1.CassandraMultiCluster{}
 	cmc := r.cmc
-	err := r.cluster1.Get(context.TODO(), req.NamespacedName, cmc)
+	err := r.clients[0].client.Get(context.TODO(), req.NamespacedName, cmc)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -119,55 +132,41 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 			// Return and don't requeue
 			// ...TODO: multicluster garbage collector
 			// Until then...
-			// TODO: Need to manually garbage collector on Distant clients.. This is safe enough ?? Warning!!!!
+			// TODO: Need to manually garbage collector on Distant client.. This is safe enough ?? Warning!!!!
 			return forget, nil
 		}
 		// Error reading the object - requeue the request.
-		return forget, err
+		return requeue, err
 	}
 
+	var storedCC *ccv1.CassandraCluster
+	for i, value := range r.clients {
+		var cc *ccv1.CassandraCluster
+		var found bool
+		if found, cc = r.getCassandraClusterForContext(value.name); !found{
+			logrus.Warningf("Cluster %s not found in CassandraMultiCluster Specs", value.name)
+			break
 
+		}
+		cli := r.clients[i].client
 
-	cc1 := &ccv1.CassandraCluster{}
-	if err := r.cluster1.Get(context.TODO(), r.namespacedName(cmc.Spec.CassandraCluster[0].Name, cmc.Spec.CassandraCluster[0].Namespace), cc1); err != nil {
-		if errors.IsNotFound(err) {
-			err := r.cluster1.Create(context.TODO(), &cmc.Spec.CassandraCluster[0])
+		if storedCC, err = r.CreateOrUpdateCassandraCluster(cli, cc); err != nil {
+			logrus.Info("error on CassandraCluster %s in Cluster ", cc.Name, value.name)
 			return requeue5, err
+		}
+
+		if !r.ReadyCassandraCluster(storedCC) {
+			logrus.Infof("CassandraCluster %s in Cluster %s not Ready, we wait. [phase=%s / action=%s / status=%s]",
+				cc.Name, value.name, storedCC.Status.Phase, storedCC.Status.LastClusterAction,
+				storedCC.Status.LastClusterActionStatus)
+			return requeue30, err
 		}
 	}
 
-	if cc1.Status.Phase != ccv1.ClusterPhaseRunning || cc1.Status.LastClusterActionStatus != ccv1.StatusDone{
-		logrus.Infof("Cluster 1 not Ready, we wait. [phase=%s / action=%s / status=%s]", cc1.Status.Phase, cc1.Status.LastClusterAction, cc1.Status.LastClusterActionStatus)
-		return requeue30, err
-	}
-
-	cc2 := &ccv1.CassandraCluster{}
-	if err := r.cluster2.Get(context.TODO(), r.namespacedName(cmc.Spec.CassandraCluster[1].Name,
-		cmc.Spec.CassandraCluster[1].Namespace), cc2); err != nil {
-		if errors.IsNotFound(err) {
-			err := r.cluster2.Create(context.TODO(), &cmc.Spec.CassandraCluster[1])
-			return requeue5, err
-		}
-	}
-
-	/*
-	if reflect.DeepEqual(dg.Spec, og.Spec) {
-		return reconcile.Result{}, nil
-	}
-
-	og.Spec = dg.Spec
-	err := r.cluster2.Update(context.TODO(), og)
-	return reconcile.Result{}, err
-	*/
-	return requeue, err
+	//TODO: Not sure if I can use forget or requeueXX here
+	return forget, err
 }
 
-func (r *reconciler) cassandraMultiClusterNamespacedName(reqNS types.NamespacedName) types.NamespacedName {
-	return types.NamespacedName{
-		Namespace: r.namespace,
-		Name:      reqNS.Name,
-	}
-}
 
 func (r *reconciler) namespacedName(name, namespace string) types.NamespacedName {
 	return types.NamespacedName{
@@ -176,14 +175,18 @@ func (r *reconciler) namespacedName(name, namespace string) types.NamespacedName
 	}
 }
 
-
-func (r *reconciler) ghostNamespacedName(pod types.NamespacedName) types.NamespacedName {
-	return types.NamespacedName{
-		Namespace: r.namespace,
-		Name:      fmt.Sprintf("%s-%s", pod.Namespace, pod.Name),
+func (r *reconciler) getCassandraClusterForContext(context string) (bool, *ccv1.CassandraCluster) {
+	for cmcclName, cmcCC := range r.cmc.Spec.CassandraCluster{
+		if context == cmcclName{
+			return true, &cmcCC
+		}
 	}
+return false, nil
 }
 
+
+
+/*Riskyyy
 func (r *reconciler) deleteCassandraCluster(nsn types.NamespacedName) error {
 	cc := &ccv1.CassandraCluster{}
 	if err := r.cluster2.Get(context.TODO(), nsn, cc); err != nil {
@@ -198,14 +201,6 @@ func (r *reconciler) deleteCassandraCluster(nsn types.NamespacedName) error {
 	}
 	return nil
 }
-
-/*
-func (r *reconciler) makeCassandraCluster(cc *v1.Pod) *cmcv1.CassandraMultiCluster {
-	return &cmcv1.CassandraMultiCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: r.namespace,
-			Name:      fmt.Sprintf("%s-%s", pod.Namespace, pod.Name),
-		},
-	}
-}
 */
+
+

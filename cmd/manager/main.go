@@ -29,10 +29,7 @@ import (
 	"log"
 )
 
-type ClustersConf struct {
-	index int
-	cluster *cluster.Cluster
-}
+
 
 func main() {
 	flag.Parse()
@@ -40,7 +37,7 @@ func main() {
 		log.Fatalf("Usage: CassandraMultiCluster cluster-1 cluster-2 .. cluster-n")
 	}
 
-	var clusters map[string]ClustersConf
+	var clusters []cassandramulticluster.Clusters
 
 	for i:=0 ; i < flag.NArg(); i++{
 		clusterName := flag.Arg(i)
@@ -49,7 +46,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		clusters[clusterName] = ClustersConf{i, cluster.New(clusterName, cfg, cluster.Options{})}
+		clusters = append(clusters,
+			cassandramulticluster.Clusters{clusterName,cluster.New(clusterName, cfg, cluster.Options{})})
 
 	}
 
