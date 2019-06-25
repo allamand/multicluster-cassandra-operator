@@ -29,6 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 
+	"github.com/imdario/mergo"
+
 	"admiralty.io/multicluster-controller/pkg/cluster"
 	"admiralty.io/multicluster-controller/pkg/controller"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -76,13 +78,14 @@ func NewController(clusters []Clusters, namespace string) (*controller.Controlle
 
 	co := controller.New(&reconciler{clients: clients, namespace: namespace}, controller.Options{})
 
-	for i, value := range clusters {
+	for _, value := range clusters {
 
 		//for now only watch in the first cluster
+		/*
 		if i >0{
 			break
 		}
-
+*/
 		//Demande au controlleur de faire un Watch des ressources de type Pod
 		logrus.Info("Configuring Watch for CassandraMultiCluster")
 		if err := co.WatchResourceReconcileObject(value.Cluster, &cmcv1.CassandraMultiCluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace}},
@@ -114,6 +117,7 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	forget := reconcile.Result{}
 
 	if req.Namespace != r.namespace{
+		logrus.Warningf("We don't watch the object in this namespace %s/%s",req.Name, req.Namespace)
 		return forget, nil
 	}
 
@@ -164,7 +168,7 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	}
 
 	//TODO: Not sure if I can use forget or requeueXX here
-	return forget, err
+	return requeue30, err
 }
 
 
@@ -176,9 +180,12 @@ func (r *reconciler) namespacedName(name, namespace string) types.NamespacedName
 }
 
 func (r *reconciler) getCassandraClusterForContext(context string) (bool, *ccv1.CassandraCluster) {
-	for cmcclName, cmcCC := range r.cmc.Spec.CassandraCluster{
+	base := r.cmc.Spec.Base.DeepCopy()
+	for cmcclName, override := range r.cmc.Spec.Override{
 		if context == cmcclName{
-			return true, &cmcCC
+			//TODO: get base+override merged
+			mergo.Merge(base, override, mergo.WithOverride)
+			return true, base
 		}
 	}
 return false, nil

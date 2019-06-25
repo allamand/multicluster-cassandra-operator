@@ -74,8 +74,8 @@ func (in *CassandraMultiClusterList) DeepCopyObject() runtime.Object {
 func (in *CassandraMultiClusterSpec) DeepCopyInto(out *CassandraMultiClusterSpec) {
 	*out = *in
 	in.Base.DeepCopyInto(&out.Base)
-	if in.CassandraCluster != nil {
-		in, out := &in.CassandraCluster, &out.CassandraCluster
+	if in.Override != nil {
+		in, out := &in.Override, &out.Override
 		*out = make(map[string]dbv1alpha1.CassandraCluster, len(*in))
 		for key, val := range *in {
 			(*out)[key] = *val.DeepCopy()

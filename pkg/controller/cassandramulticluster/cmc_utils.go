@@ -3,8 +3,10 @@ package cassandramulticluster
 import (
 	"context"
 	ccv1 "github.com/Orange-OpenSource/cassandra-k8s-operator/pkg/apis/db/v1alpha1"
+	"github.com/kylelemons/godebug/pretty"
+	"github.com/sirupsen/logrus"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -23,8 +25,10 @@ func (r *reconciler) CreateOrUpdateCassandraCluster(client client.Client, cc *cc
 		}
 		return storedCC, err
 	}
-	if !reflect.DeepEqual(storedCC.Spec, cc.Spec){
-		storedCC.Spec = cc.Spec
+	if !apiequality.Semantic.DeepEqual(storedCC.Spec, cc.Spec){
+	//if !reflect.DeepEqual(storedCC.Spec, cc.Spec){
+	logrus.Infof("Template is different: " + pretty.Compare(storedCC.Spec, cc.Spec))
+	storedCC.Spec = cc.Spec
 		return r.UpdateCassandraCluster(client, storedCC)
 	}
 	return storedCC, nil

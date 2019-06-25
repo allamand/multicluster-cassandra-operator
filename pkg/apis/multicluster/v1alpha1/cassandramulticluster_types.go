@@ -12,7 +12,7 @@ import (
 // +k8s:openapi-gen=true
 type CassandraMultiClusterSpec struct {
 	Base apicc.CassandraCluster `json:"base,omitempty"`
-	CassandraCluster map[string]apicc.CassandraCluster `json:"cassandraCluster,omitempty"`
+	Override map[string]apicc.CassandraCluster `json:"override,omitempty"`
 
 }
 
