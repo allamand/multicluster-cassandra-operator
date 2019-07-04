@@ -36,7 +36,10 @@
   branch = "master"
   digest = "1:1f14f69f8789479a0ade9d5521a49471f84384b94bb424e5c189e62beb178607"
   name = "github.com/Orange-OpenSource/cassandra-k8s-operator"
-  packages = ["pkg/apis/db/v1alpha1"]
+  packages = [
+    "pkg/apis",
+    "pkg/apis/db/v1alpha1",
+  ]
   pruneopts = "NT"
   revision = "e4f64550163e97a47e0d5432f10c19e637a5d37b"
 
@@ -255,6 +258,17 @@
   version = "v1.0.2"
 
 [[projects]]
+  digest = "1:971504381c210efe4e8fdf04895032e23e3614d77ad47765066bb0536b5c5259"
+  name = "github.com/kylelemons/godebug"
+  packages = [
+    "diff",
+    "pretty",
+  ]
+  pruneopts = "NT"
+  revision = "9ff306d4fbead574800b66369df5b6144732d58e"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   digest = "1:5abd2595ba85b83e66f26ac8e89605dd334f0bfe3c455c1bf25a6a176a4fe836"
   name = "github.com/mailru/easyjson"
@@ -289,6 +303,14 @@
   pruneopts = "NT"
   revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
   version = "1.0.1"
+
+[[projects]]
+  digest = "1:fe3c97fb1956829a81d7b8221b4710c40d6dae2c6c3b4d222db5b7f96c975d99"
+  name = "github.com/operator-framework/operator-sdk"
+  packages = ["pkg/k8sutil"]
+  pruneopts = "NT"
+  revision = "33b3bfe10176f8647f5354516fff29dea42b6342"
+  version = "v0.8.1"
 
 [[projects]]
   branch = "master"
@@ -576,6 +598,7 @@
   digest = "1:15b5c41ff6faa4d0400557d4112d6337e1abc961c65513d44fce7922e32c9ca7"
   name = "k8s.io/apimachinery"
   packages = [
+    "pkg/api/equality",
     "pkg/api/errors",
     "pkg/api/meta",
     "pkg/api/resource",
@@ -632,6 +655,7 @@
     "pkg/version",
     "plugin/pkg/client/auth/exec",
     "plugin/pkg/client/auth/gcp",
+    "plugin/pkg/client/auth/oidc",
     "rest",
     "rest/watch",
     "restmapper",
@@ -657,7 +681,6 @@
   ]
   pruneopts = "NT"
   revision = "8d9ed539ba3134352c586810e749e58df4e94e4f"
-  version = "kubernetes-1.13.1"
 
 [[projects]]
   digest = "1:dc1ae99dcab96913d81ae970b1f7a7411a54199b14bfb17a7e86f9a56979c720"
@@ -784,14 +807,20 @@
     "admiralty.io/multicluster-controller/pkg/manager",
     "admiralty.io/multicluster-controller/pkg/reconcile",
     "admiralty.io/multicluster-service-account/pkg/config",
+    "github.com/Orange-OpenSource/cassandra-k8s-operator/pkg/apis",
     "github.com/Orange-OpenSource/cassandra-k8s-operator/pkg/apis/db/v1alpha1",
-    "k8s.io/api/core/v1",
+    "github.com/imdario/mergo",
+    "github.com/kylelemons/godebug/pretty",
+    "github.com/operator-framework/operator-sdk/pkg/k8sutil",
+    "github.com/sirupsen/logrus",
+    "k8s.io/apimachinery/pkg/api/equality",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
+    "k8s.io/client-go/plugin/pkg/client/auth/oidc",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/conversion-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",

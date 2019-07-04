@@ -43,10 +43,11 @@ required = [
   # revision for tag "kubernetes-1.13.1"
   revision = "2b1284ed4c93a43499e781493253e2ac5959c4fd"
 
-#[[override]]
-#  name = "k8s.io/client-go"
+[[override]]
+  name = "k8s.io/client-go"
   # revision for tag "kubernetes-1.13.1"
-#  revision = "8d9ed539ba3134352c586810e749e58df4e94e4f"
+  revision = "8d9ed539ba3134352c586810e749e58df4e94e4f"
+
 
 [[override]]
   name = "github.com/coreos/prometheus-operator"

@@ -20,6 +20,10 @@ import (
 	"admiralty.io/multicluster-controller/pkg/reconcile"
 	"context"
 	"fmt"
+
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+
 	apicc "github.com/Orange-OpenSource/cassandra-k8s-operator/pkg/apis"
 	ccv1 "github.com/Orange-OpenSource/cassandra-k8s-operator/pkg/apis/db/v1alpha1"
 	apicmc "github.com/Orange-OpenSource/multicluster-cassandra-operator/pkg/apis"
@@ -148,7 +152,7 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		var cc *ccv1.CassandraCluster
 		var found bool
 		if found, cc = r.getCassandraClusterForContext(value.name); !found{
-			logrus.Warningf("Cluster %s not found in CassandraMultiCluster Specs", value.name)
+			logrus.Warningf("Cluster %s is not found in CassandraMultiCluster Specs", value.name)
 			break
 
 		}
@@ -179,11 +183,12 @@ func (r *reconciler) namespacedName(name, namespace string) types.NamespacedName
 	}
 }
 
+//getCassandraClusterForContext return the CassandraCluster object to create for the current context
+//It merges the base definition, with the override part for the specified context in the CassandraMultiCluster CRD
 func (r *reconciler) getCassandraClusterForContext(context string) (bool, *ccv1.CassandraCluster) {
 	base := r.cmc.Spec.Base.DeepCopy()
 	for cmcclName, override := range r.cmc.Spec.Override{
 		if context == cmcclName{
-			//TODO: get base+override merged
 			mergo.Merge(base, override, mergo.WithOverride)
 			return true, base
 		}
