@@ -17,12 +17,15 @@ limitations under the License.
 package cassandramulticluster
 
 import (
-	"admiralty.io/multicluster-controller/pkg/reconcile"
 	"context"
 	"fmt"
 
+	"admiralty.io/multicluster-controller/pkg/reconcile"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+
+	"time"
 
 	apicc "github.com/Orange-OpenSource/cassandra-k8s-operator/pkg/apis"
 	ccv1 "github.com/Orange-OpenSource/cassandra-k8s-operator/pkg/apis/db/v1alpha1"
@@ -31,7 +34,6 @@ import (
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 
 	"github.com/imdario/mergo"
 
@@ -44,7 +46,7 @@ import (
 type Clusters struct {
 	Name    string
 	Cluster *cluster.Cluster
-	}
+}
 type Clients struct {
 	name   string
 	client client.Client
@@ -67,7 +69,7 @@ func NewController(clusters []Clusters, namespace string) (*controller.Controlle
 				err)
 		}
 
-		clients = append(clients, &Clients{value.Name,client})
+		clients = append(clients, &Clients{value.Name, client})
 
 		logrus.Infof("Add CRDs to Cluster %s Scheme", value.Name)
 		if err := apicc.AddToScheme(value.Cluster.GetScheme()); err != nil {
@@ -86,10 +88,10 @@ func NewController(clusters []Clusters, namespace string) (*controller.Controlle
 
 		//for now only watch in the first cluster
 		/*
-		if i >0{
-			break
-		}
-*/
+			if i >0{
+				break
+			}
+		*/
 		//Demande au controlleur de faire un Watch des ressources de type Pod
 		logrus.Info("Configuring Watch for CassandraMultiCluster")
 		if err := co.WatchResourceReconcileObject(value.Cluster, &cmcv1.CassandraMultiCluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace}},
@@ -111,8 +113,6 @@ func NewController(clusters []Clusters, namespace string) (*controller.Controlle
 	return co, nil
 }
 
-
-
 func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	//cc := &ccv1.CassandraCluster{}
 	requeue30 := reconcile.Result{RequeueAfter: 30 * time.Second}
@@ -120,11 +120,10 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	requeue := reconcile.Result{Requeue: true}
 	forget := reconcile.Result{}
 
-	if req.Namespace != r.namespace{
-		logrus.Warningf("We don't watch the object in this namespace %s/%s",req.Name, req.Namespace)
+	if req.Namespace != r.namespace {
+		logrus.Warningf("We don't watch the object in this namespace %s/%s", req.Name, req.Namespace)
 		return forget, nil
 	}
-
 
 	logrus.Infof("Reconcile %v.", req)
 
@@ -151,11 +150,14 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	for i, value := range r.clients {
 		var cc *ccv1.CassandraCluster
 		var found bool
-		if found, cc = r.getCassandraClusterForContext(value.name); !found{
+		if found, cc = r.getCassandraClusterForContext(value.name); !found {
 			logrus.Warningf("Cluster %s is not found in CassandraMultiCluster Specs", value.name)
 			break
 
 		}
+		//Add defaults value for CassandraCluster if not set
+		cc.CheckDefaults()
+
 		cli := r.clients[i].client
 
 		if storedCC, err = r.CreateOrUpdateCassandraCluster(cli, cc); err != nil {
@@ -175,7 +177,6 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	return requeue30, err
 }
 
-
 func (r *reconciler) namespacedName(name, namespace string) types.NamespacedName {
 	return types.NamespacedName{
 		Namespace: namespace,
@@ -187,16 +188,14 @@ func (r *reconciler) namespacedName(name, namespace string) types.NamespacedName
 //It merges the base definition, with the override part for the specified context in the CassandraMultiCluster CRD
 func (r *reconciler) getCassandraClusterForContext(context string) (bool, *ccv1.CassandraCluster) {
 	base := r.cmc.Spec.Base.DeepCopy()
-	for cmcclName, override := range r.cmc.Spec.Override{
-		if context == cmcclName{
+	for cmcclName, override := range r.cmc.Spec.Override {
+		if context == cmcclName {
 			mergo.Merge(base, override, mergo.WithOverride)
 			return true, base
 		}
 	}
-return false, nil
+	return false, nil
 }
-
-
 
 /*Riskyyy
 func (r *reconciler) deleteCassandraCluster(nsn types.NamespacedName) error {
@@ -214,5 +213,3 @@ func (r *reconciler) deleteCassandraCluster(nsn types.NamespacedName) error {
 	return nil
 }
 */
-
-

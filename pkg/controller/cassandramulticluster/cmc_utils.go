@@ -21,14 +21,30 @@ func (r *reconciler) CreateOrUpdateCassandraCluster(client client.Client, cc *cc
 	storedCC := &ccv1.CassandraCluster{}
 	if err := client.Get(context.TODO(), r.namespacedName(cc.Name, cc.Namespace), storedCC); err != nil {
 		if errors.IsNotFound(err) {
+			logrus.Infof("CassandraCluster don't exists, we create it : ")
 			return r.CreateCassandraCluster(client, cc)
 		}
 		return storedCC, err
 	}
+	needUpdate := false
+	//TODO: need new way to detect changes
 	if !apiequality.Semantic.DeepEqual(storedCC.Spec, cc.Spec){
-	//if !reflect.DeepEqual(storedCC.Spec, cc.Spec){
-	logrus.Infof("Template is different: " + pretty.Compare(storedCC.Spec, cc.Spec))
-	storedCC.Spec = cc.Spec
+			logrus.Infof("Template is different: " + pretty.Compare(storedCC.Spec, cc.Spec))
+		storedCC.Spec = cc.Spec
+		needUpdate = true
+		}
+
+	//Multi-CassKop manages the Seedlist, we ensure that managed Casskop won't deal themselves with the seedlist
+	cc.Spec.AutoUpdateSeedList = false
+
+	if cc.Status.SeedList != nil &&
+		!apiequality.Semantic.DeepEqual(storedCC.Status.SeedList, cc.Status.SeedList){
+		logrus.Infof("SeedList is different: " + pretty.Compare(storedCC.Status.SeedList, cc.Status.SeedList))
+		storedCC.Status.SeedList = cc.Status.SeedList
+		needUpdate = true
+	}
+
+	if needUpdate {
 		return r.UpdateCassandraCluster(client, storedCC)
 	}
 	return storedCC, nil
