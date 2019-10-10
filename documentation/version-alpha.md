@@ -40,13 +40,11 @@ example:
 
 # How MultiCassKop works
 
-MultiCassKop starts by ...
-
-
-Then we register our controller. The controller needs to be able to interract with CassandraMultiCluster and
-CassandraCluster CRD objetcs.
+MultiCassKop starts by iterrating on every contexts passed in parameters then it register the controller. 
+The controller needs to be able to interract with CassandraMultiCluster and CassandraCluster CRD objetcs.
 In addition the controller needs to watch for CassandraMultiCluster as it will need to react on any changes occurs on
 thoses objects for the given namespace.
+
 
 ## CassandraMultiCluster definition
 

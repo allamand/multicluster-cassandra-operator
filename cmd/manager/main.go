@@ -17,19 +17,41 @@ limitations under the License.
 package main
 
 import (
+	"flag"
+	"log"
+	"os"
+
 	"admiralty.io/multicluster-controller/pkg/cluster"
 	"admiralty.io/multicluster-controller/pkg/manager"
 	"admiralty.io/multicluster-service-account/pkg/config"
-	"flag"
 	"github.com/Orange-OpenSource/multicluster-cassandra-operator/pkg/controller/cassandramulticluster"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/sample-controller/pkg/signals"
-	"log"
 )
 
+const (
+	LogLevelEnvVar = "LOG_LEVEL"
+)
 
+func getLogLevel() logrus.Level {
+	logLevel, found := os.LookupEnv(LogLevelEnvVar)
+	if !found {
+		return logrus.InfoLevel
+	}
+	switch logLevel {
+	case "Debug":
+		return logrus.DebugLevel
+	case "Info":
+		return logrus.InfoLevel
+	case "Error":
+		return logrus.ErrorLevel
+	case "Warn":
+		return logrus.WarnLevel
+	}
+	return logrus.InfoLevel
+}
 
 func main() {
 	flag.Parse()
@@ -37,9 +59,15 @@ func main() {
 		log.Fatalf("Usage: CassandraMultiCluster cluster-1 cluster-2 .. cluster-n")
 	}
 
+	logType, found := os.LookupEnv("LOG_TYPE")
+	if found && logType == "json" {
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+	}
+	logrus.SetLevel(getLogLevel())
+
 	var clusters []cassandramulticluster.Clusters
 
-	for i:=0 ; i < flag.NArg(); i++{
+	for i := 0; i < flag.NArg(); i++ {
 		clusterName := flag.Arg(i)
 		logrus.Infof("Configuring Client %d for cluster %s.", i+1, clusterName)
 		cfg, _, err := config.NamedConfigAndNamespace(clusterName)
@@ -47,7 +75,7 @@ func main() {
 			log.Fatal(err)
 		}
 		clusters = append(clusters,
-			cassandramulticluster.Clusters{clusterName,cluster.New(clusterName, cfg, cluster.Options{})})
+			cassandramulticluster.Clusters{clusterName, cluster.New(clusterName, cfg, cluster.Options{})})
 
 	}
 
@@ -64,7 +92,6 @@ func main() {
 
 	m := manager.New()
 	m.AddController(co)
-
 
 	logrus.Info("Starting Manager.")
 	if err := m.Start(signals.SetupSignalHandler()); err != nil {
