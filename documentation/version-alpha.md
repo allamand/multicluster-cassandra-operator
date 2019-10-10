@@ -26,7 +26,28 @@ This operator uses:
 - Admiralty's [multicluster-controller](https://github.com/admiraltyio/multicluster-controller) to allow talking to
   several kubernetes api servers.
   
-  
+
+## Launching MultiCassKop operator
+
+MultiCassKop take into parameters a list of kubernetes contexts names as defined in the KUBECONFIG file.
+
+example: 
+```
+./multiCassKop dex-sallamand-kaas-prod-priv-sph dex-sallamand-kaas-prod-priv-bgl
+```
+
+>**Note:** MultiCassKop will ONLY uses the first kubernetes passed as parameter to CassandraMultiCluster objects
+
+# How MultiCassKop works
+
+MultiCassKop starts by ...
+
+
+Then we register our controller. The controller needs to be able to interract with CassandraMultiCluster and
+CassandraCluster CRD objetcs.
+In addition the controller needs to watch for CassandraMultiCluster as it will need to react on any changes occurs on
+thoses objects for the given namespace.
+
 ## CassandraMultiCluster definition
 
 Multi-CassKop introduce a new custom ressource and will have the charge to create CassandraCluster ressoruces in each
@@ -99,3 +120,6 @@ Example of the override section
                     location.dfy.orange.com/street : Rue_5
                     location.dfy.orange.com/bay : "10"
 ```
+
+> We can defined has many entries we want in the override sections which correspond also to the clusters we want to
+> deploy onto.

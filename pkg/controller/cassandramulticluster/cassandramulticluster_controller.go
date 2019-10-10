@@ -43,21 +43,27 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+//Clusters defined each kubernetes we want to connect on it
 type Clusters struct {
 	Name    string
 	Cluster *cluster.Cluster
 }
+
+//Clients is the k8s client to use to connect to each kubernetes
 type Clients struct {
 	name   string
 	client client.Client
 }
 
+//reconciler is the base struc to be used for MultiCassKop
 type reconciler struct {
 	clients   []*Clients
 	cmc       *cmcv1.CassandraMultiCluster
 	namespace string
 }
 
+// NewController will create k8s clients for each k8s clusters,
+// and watch for changes to CassandraMultiCluster and CassandraCluster CRD objects
 func NewController(clusters []Clusters, namespace string) (*controller.Controller, error) {
 
 	var clients []*Clients
@@ -68,9 +74,7 @@ func NewController(clusters []Clusters, namespace string) (*controller.Controlle
 			return nil, fmt.Errorf("getting delegating client %d for Cluster %s Cluster: %v", i, value.Name,
 				err)
 		}
-
 		clients = append(clients, &Clients{value.Name, client})
-
 		logrus.Infof("Add CRDs to Cluster %s Scheme", value.Name)
 		if err := apicc.AddToScheme(value.Cluster.GetScheme()); err != nil {
 			return nil, fmt.Errorf("adding APIs CassandraCluster to Cluster %s Cluster's scheme: %v", value.Name, err)
@@ -79,33 +83,13 @@ func NewController(clusters []Clusters, namespace string) (*controller.Controlle
 			return nil, fmt.Errorf("adding APIs CassandraMultiCluster to Cluster %s Cluster's scheme: %v", value.Name,
 				err)
 		}
-
 	}
 
 	co := controller.New(&reconciler{clients: clients, namespace: namespace}, controller.Options{})
 
 	for _, value := range clusters {
-
-		//for now only watch in the first cluster
-		/*
-			if i >0{
-				break
-			}
-		*/
-		//Demande au controlleur de faire un Watch des ressources de type Pod
 		logrus.Info("Configuring Watch for CassandraMultiCluster")
 		if err := co.WatchResourceReconcileObject(value.Cluster, &cmcv1.CassandraMultiCluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace}},
-			controller.WatchOptions{}); err != nil {
-			return nil, fmt.Errorf("setting up CassandraMultiCluster watch in Cluster %s Cluster: %v", value.Name, err)
-		}
-
-		// Note: At the moment, all client share the same scheme under the hood
-		// (k8s.io/client-go/kubernetes/scheme.Scheme), yet multicluster-controller gives each Cluster a scheme pointer.
-		// Therefore, if we needed a custom resource in multiple client, we would redundantly
-		// add it to each Cluster's scheme, which points to the same underlying scheme.
-
-		//SEB: TODO - pas sur de comprendre a quoi sert celui la ??
-		if err := co.WatchResourceReconcileController(value.Cluster, &cmcv1.CassandraMultiCluster{},
 			controller.WatchOptions{}); err != nil {
 			return nil, fmt.Errorf("setting up CassandraMultiCluster watch in Cluster %s Cluster: %v", value.Name, err)
 		}
@@ -140,6 +124,8 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 			// ...TODO: multicluster garbage collector
 			// Until then...
 			// TODO: Need to manually garbage collector on Distant client.. This is safe enough ?? Warning!!!!
+			r.deleteCassandraClusters(req.NamespacedName)
+
 			return forget, nil
 		}
 		// Error reading the object - requeue the request.
@@ -197,19 +183,36 @@ func (r *reconciler) getCassandraClusterForContext(context string) (bool, *ccv1.
 	return false, nil
 }
 
-/*Riskyyy
-func (r *reconciler) deleteCassandraCluster(nsn types.NamespacedName) error {
-	cc := &ccv1.CassandraCluster{}
-	if err := r.cluster2.Get(context.TODO(), nsn, cc); err != nil {
+//Riskyyy
+func (r *reconciler) deleteCassandraClusters(nsn types.NamespacedName) error {
+
+	var err error
+	for _, value := range r.clients {
+		//var cc *ccv1.CassandraCluster
+		//var found bool
+		//cli := r.clients[i].client
+		cli := value
+		err = r.deleteCassandraCluster(nsn, cli)
+		if err != nil {
+			logrus.Errorf("Error deleting CassandraCluster err=%v", err)
+		}
+	}
+	return err
+
+}
+
+func (r *reconciler) deleteCassandraCluster(nsn types.NamespacedName, cli *Clients) error {
+	var cc *ccv1.CassandraCluster
+	logrus.Infof("Delete %s in namespace %s of cluster %s", nsn.Name, nsn.Namespace, cli.name)
+	if err := cli.client.Get(context.TODO(), nsn, cc); err != nil {
 		if errors.IsNotFound(err) {
 			// all good
 			return nil
 		}
 		return err
 	}
-	if err := r.cluster2.Delete(context.TODO(), cc); err != nil {
+	if err := cli.client.Delete(context.TODO(), cc); err != nil {
 		return err
 	}
 	return nil
 }
-*/

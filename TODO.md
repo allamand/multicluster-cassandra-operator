@@ -7,6 +7,9 @@
   prevent to let this parameter be set at CassandraMultiCluster level, and not to be removed from local CassandraCluster
   if it has been set up locally (remove from the difference detection)
 
+- **Feature02**: Auto compute and update seedlist at MultiCassKop level
+
+- **Feature03**: Specify the namespace we want to deploy onto for each kubernetes contexts
 
 ## Bugs
 
