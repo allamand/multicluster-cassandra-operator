@@ -11,6 +11,9 @@
 
 - **Feature03**: Specify the namespace we want to deploy onto for each kubernetes contexts
 
+- **Feature04**: Allow to delete CassandraClusters when deleting CassandraMultiCluster
+                 Make uses of a Finalizer to keep track of last CassandraMultiCluster before deleting
+
 ## Bugs
 
 - **Bug01**: when changing parameter on a deployed cluster (for instance cassandra image), both clusters applied modification

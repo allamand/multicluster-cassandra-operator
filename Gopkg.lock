@@ -33,15 +33,15 @@
   version = "v0.46.3"
 
 [[projects]]
-  branch = "master"
-  digest = "1:42ce5da1479b81e99c7f415d2a8216d32312ad28b5bdb783b1abc4ada8aad545"
+  branch = "annotations"
+  digest = "1:c32308053565bd0517f99226875ec7a568d1a002195f63d06a3f2fde15afd4c2"
   name = "github.com/Orange-OpenSource/cassandra-k8s-operator"
   packages = [
     "pkg/apis",
     "pkg/apis/db/v1alpha1",
   ]
   pruneopts = "NT"
-  revision = "39a2dfee721eb3ac74cec06f7554d3719f26ca16"
+  revision = "a08e140e49e4f602d1fdab05ec03b41def3af43b"
 
 [[projects]]
   digest = "1:0a111edd8693fd977f42a0c4f199a0efb13c20aec9da99ad8830c7bb6a87e8d6"
@@ -337,7 +337,7 @@
   version = "v0.8.1"
 
 [[projects]]
-  digest = "1:ac840631f6a1e2d5ec2b0e67368d6b40722c83fbf8aedf0ee907f97d408b3f61"
+  digest = "1:3dbe838027ffb0a1bdff516b2d6aa782d3802f8e1716738de9c1a7ff92232bb4"
   name = "github.com/rogpeppe/go-internal"
   packages = [
     "modfile",
@@ -345,8 +345,8 @@
     "semver",
   ]
   pruneopts = "NT"
-  revision = "4bb227c59b1edd467deba87d2149d80915c0bed7"
-  version = "v1.4.0"
+  revision = "d89504fbbf2c313df24867a5ffafcc9b847961ff"
+  version = "v1.5.0"
 
 [[projects]]
   digest = "1:efe8ddffa78bddbd1d826faf622cca77dbf7ddc72df04077d69a688cac657148"
@@ -445,14 +445,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0db0c25ba552ed9f66f579ed4e197adb772a776c91ec2297274b13f0adb5b2cc"
+  digest = "1:e730d90454e22c11dc9d0f50b37f169ffb83dba2f69ca8a9339dc3ceb0422463"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "NT"
-  revision = "ef33b2fb2c414dca4bfcf6ca59cbd1d9ad00703d"
+  revision = "543471e840be449c53d44b32c7adf1261ad67e37"
 
 [[projects]]
   digest = "1:348fa8283a7c60b5b71ce04d27b37f7c0fce552d4d0b463b5b3ebbd1840d3f1a"

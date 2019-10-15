@@ -66,7 +66,7 @@ required = [
 
 [[constraint]]
   name = "github.com/Orange-OpenSource/cassandra-k8s-operator"
-  branch = "master"
+  branch = "annotations"
 
 [prune]
   go-tests = true
