@@ -134,8 +134,7 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		var cc *ccv1.CassandraCluster
 		var found bool
 		if found, cc = r.computeCassandraClusterForContext(client); !found {
-			logrus.WithFields(logrus.Fields{"cluster": cc.Name, "namespace": cc.Namespace,
-				"kubernetes": client.name}).Warningf("Cluster is not found: %v", err)
+			logrus.WithFields(logrus.Fields{"kubernetes": client.name}).Warningf("No Cassandra Cluster defined for context: %v", err)
 			break
 
 		}
