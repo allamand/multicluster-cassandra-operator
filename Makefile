@@ -196,20 +196,20 @@ debug-telepresence:
 .PHONY: run
 run:
 	export POD_NAME=multi-caaskop; \
-	export WATCH_NAMESPACE=cassandra-demo; \
+	export WATCH_NAMESPACE=cassandra; \
 	export LOG_LEVEL=Debug; \
-	operator-sdk up local --namespace cassandra-demo  --operator-flags "dex-sallamand-kaas-prod-priv-sph dex-sallamand-kaas-prod-priv-bgl"
+	operator-sdk up local --namespace cassandra-demo  --operator-flags "dex-kaas-prod-priv-sph dex-kaas-prod-priv-bgl"
 
 run-local:
 	export POD_NAME=multi-caaskop; \
-	export WATCH_NAMESPACE=cassandra-demo; \
+	export WATCH_NAMESPACE=cassandra; \
 	export LOG_LEVEL=Debug; \
-	./build/_output/bin/multicluster-cassandra-operator-$(GOOS) dex-sallamand-kaas-prod-priv-sph dex-sallamand-kaas-prod-priv-bgl
+	./build/_output/bin/multicluster-cassandra-operator-$(GOOS) dex-kaas-prod-priv-sph dex-kaas-prod-priv-bgl
 
 
 docker-run:
 	docker rm multi-casskop || true
-	docker run --name multi-casskop -d -e KUBECONFIG=/root/.kube/config -e WATCH_NAMESPACE=cassandra-demo -v $(KUBECONFIG):/root/.kube/config $(REPOSITORY):$(VERSION) dex-sallamand-kaas-prod-priv-sph dex-sallamand-kaas-prod-priv-bgl
+	docker run --name multi-casskop -d -e KUBECONFIG=/root/.kube/config -e WATCH_NAMESPACE=cassandra -v $(KUBECONFIG):/root/.kube/config $(REPOSITORY):$(VERSION) dex-kaas-prod-priv-sph dex-kaas-prod-priv-bgl
 	docker logs -f multi-casskop
 
 .PHONY: push
