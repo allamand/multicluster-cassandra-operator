@@ -19,6 +19,20 @@ func (r *reconciler) ReadyCassandraCluster(cc *ccv1.CassandraCluster) bool {
 	return true
 }
 
+/*
+func (r *reconciler) GetCassandraCluster(client *Client, cc *ccv1.CassandraCluster) (*ccv1.CassandraCluster, error) {
+
+	storedCC := &ccv1.CassandraCluster{}
+	if err := client.client.Get(context.TODO(), r.namespacedName(cc.Name, cc.Namespace), storedCC); err != nil {
+		if errors.IsNotFound(err) {
+			logrus.WithFields(logrus.Fields{"cluster": cc.Name, "namespace": cc.Namespace, "kubernetes": client.name}).Debug("CassandraCluster don't exists, we create it ")
+			return nil, err
+		}
+		return storedCC, err
+	}
+}
+*/
+
 // CreateOrUpdateCassandraCluster
 // create CassandraCluster object in target kubernetes cluster if not exists
 // update it if it already existe

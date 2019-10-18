@@ -94,8 +94,32 @@ func NewController(clusters []Clusters, namespace string) (*controller.Controlle
 	return co, nil
 }
 
+func (r *reconciler) preventClusterDeletion(value bool) {
+	if value {
+		r.cmc.SetFinalizers([]string{"kubernetes.io/multi-casskop"})
+		return
+	}
+	r.cmc.SetFinalizers([]string{})
+}
+func (r *reconciler) updateDeletetrategy() bool {
+	/*
+		// Remove Finalizers if DeletePVC is not enabled
+		if !cc.Spec.DeletePVC && len(cc.Finalizers) > 0 {
+			logrus.WithFields(logrus.Fields{"cluster": cc.Name}).Info("Won't delete PVCs when nodes are removed")
+			preventClusterDeletion(cc, false)
+		}
+	*/
+	// Add Finalizer if DeleteCassandraCluster is enabled so that we can delete CassandraCluster
+	if *r.cmc.Spec.DeleteCassandraCluster && len(r.cmc.Finalizers) == 0 {
+		logrus.WithFields(logrus.Fields{"cluster": r.cmc.Name}).Info(
+			"updateDeletetrategy: Will delete CassandraClusters when CassandraMultiCluster is removed")
+		r.preventClusterDeletion(true)
+		return true
+	}
+	return false
+}
+
 func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
-	//cc := &ccv1.CassandraCluster{}
 	requeue30 := reconcile.Result{RequeueAfter: 30 * time.Second}
 	requeue5 := reconcile.Result{RequeueAfter: 5 * time.Second}
 	requeue := reconcile.Result{Requeue: true}
@@ -118,14 +142,14 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			// ...TODO: multicluster garbage collector
-			// Until then...
-			// TODO: Need to manually garbage collector on Distant client.. This is safe enough ?? Warning!!!!
-			r.deleteCassandraClusters(req.NamespacedName)
-
 			return forget, nil
 		}
 		// Error reading the object - requeue the request.
+		return requeue, err
+	}
+
+	if ok := r.updateDeletetrategy(); ok == true {
+		err := masterClient.Update(context.TODO(), r.cmc)
 		return requeue, err
 	}
 
@@ -136,10 +160,18 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		if found, cc = r.computeCassandraClusterForContext(client); !found {
 			logrus.WithFields(logrus.Fields{"kubernetes": client.name}).Warningf("No Cassandra Cluster defined for context: %v", err)
 			break
-
 		}
-		//Add defaults client for CassandraCluster if not set
-		cc.CheckDefaults()
+
+		//If deletion is asked
+		if r.cmc.DeletionTimestamp != nil {
+
+			//TODO: mode this to deletetimestamp
+			// ...TODO: multicluster garbage collector
+			// Until then...
+			// TODO: Need to manually garbage collector on Distant client.. This is safe enough ?? Warning!!!!
+			r.deleteCassandraCluster(client, cc)
+			break
+		}
 
 		update, storedCC, err := r.CreateOrUpdateCassandraCluster(client, cc)
 		if err != nil {
@@ -161,6 +193,13 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		}
 	}
 
+	if r.cmc.DeletionTimestamp != nil {
+		//We remove the Finalizer
+		r.preventClusterDeletion(false)
+		err := masterClient.Update(context.TODO(), r.cmc)
+		return forget, err
+	}
+
 	return requeue30, err
 }
 
@@ -179,35 +218,17 @@ func (r *reconciler) computeCassandraClusterForContext(client *Client) (bool, *c
 	for cmcclName, override := range r.cmc.Spec.Override {
 		if client.name == cmcclName {
 			mergo.Merge(base, override, mergo.WithOverride)
+			//Force default values if missing
+			base.CheckDefaults()
 			return true, base
 		}
 	}
 	return false, nil
 }
 
-//TODO: test cause it's Riskyyy
-func (r *reconciler) deleteCassandraClusters(nsn types.NamespacedName) error {
-	var err error
-	for _, client := range r.clients {
-		cli := client
-		err = r.deleteCassandraCluster(nsn, cli)
-		if err != nil {
-			logrus.WithFields(logrus.Fields{"cluster": nsn.Name, "namespace": nsn.Namespace, "kubernetes": client.name}).Errorf("Error deleting CassandraCluster err=%v", err)
-		}
-	}
-	return err
-}
-
-func (r *reconciler) deleteCassandraCluster(nsn types.NamespacedName, client *Client) error {
-	var cc *ccv1.CassandraCluster
-	logrus.WithFields(logrus.Fields{"cluster": nsn.Name, "namespace": nsn.Namespace, "kubernetes": client.name}).Info("Delete CassandraCluster")
-	if err := client.client.Get(context.TODO(), nsn, cc); err != nil {
-		if errors.IsNotFound(err) {
-			// all good
-			return nil
-		}
-		return err
-	}
+func (r *reconciler) deleteCassandraCluster(client *Client, cc *ccv1.CassandraCluster) error {
+	logrus.WithFields(logrus.Fields{"cluster": cc.Name, "namespace": cc.Namespace,
+		"kubernetes": client.name}).Info("Delete CassandraCluster")
 	if err := client.client.Delete(context.TODO(), cc); err != nil {
 		return err
 	}

@@ -1,8 +1,8 @@
 package v1alpha1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apicc "github.com/Orange-OpenSource/cassandra-k8s-operator/pkg/apis/db/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -11,9 +11,9 @@ import (
 // CassandraMultiClusterSpec defines the desired state of CassandraMultiCluster
 // +k8s:openapi-gen=true
 type CassandraMultiClusterSpec struct {
-	Base apicc.CassandraCluster `json:"base,omitempty"`
-	Override map[string]apicc.CassandraCluster `json:"override,omitempty"`
-
+	DeleteCassandraCluster *bool                             `json:"deleteCassandraCluster,omitempty"`
+	Base                   apicc.CassandraCluster            `json:"base,omitempty"`
+	Override               map[string]apicc.CassandraCluster `json:"override,omitempty"`
 }
 
 // CassandraMultiClusterStatus defines the observed state of CassandraMultiCluster
