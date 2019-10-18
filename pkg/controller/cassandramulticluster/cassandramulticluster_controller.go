@@ -102,13 +102,7 @@ func (r *reconciler) preventClusterDeletion(value bool) {
 	r.cmc.SetFinalizers([]string{})
 }
 func (r *reconciler) updateDeletetrategy() bool {
-	/*
-		// Remove Finalizers if DeletePVC is not enabled
-		if !cc.Spec.DeletePVC && len(cc.Finalizers) > 0 {
-			logrus.WithFields(logrus.Fields{"cluster": cc.Name}).Info("Won't delete PVCs when nodes are removed")
-			preventClusterDeletion(cc, false)
-		}
-	*/
+
 	// Add Finalizer if DeleteCassandraCluster is enabled so that we can delete CassandraCluster
 	if *r.cmc.Spec.DeleteCassandraCluster && len(r.cmc.Finalizers) == 0 {
 		logrus.WithFields(logrus.Fields{"cluster": r.cmc.Name}).Info(
@@ -164,11 +158,6 @@ func (r *reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 
 		//If deletion is asked
 		if r.cmc.DeletionTimestamp != nil {
-
-			//TODO: mode this to deletetimestamp
-			// ...TODO: multicluster garbage collector
-			// Until then...
-			// TODO: Need to manually garbage collector on Distant client.. This is safe enough ?? Warning!!!!
 			r.deleteCassandraCluster(client, cc)
 			break
 		}

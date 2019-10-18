@@ -1,0 +1,105 @@
+apiVersion: multicluster.orange.com/v1alpha1
+kind: CassandraMultiCluster
+metadata:
+  name: cassandramulticluster-demo
+spec:
+  # Add fields here
+  deleteCassandraCluster: true
+  base:
+    apiVersion: "db.orange.com/v1alpha1"
+    kind: "CassandraCluster"
+    metadata:
+      name: cassandra-demo
+      namespace: cassandra-demo
+      labels:
+        cluster: casskop
+    spec:
+      baseImage: ext-dockerio.artifactory.si.francetelecom.fr/orangeopensource/cassandra-image
+      version: "3.11"
+      #bootstrapImage: ext-dockerio.artifactory.si.francetelecom.fr/orangeopensource/cassandra-bootstrap:0.1.0
+      bootstrapImage: registry.gitlab.si.francetelecom.fr/dfyarchicloud/dfyarchicloud-registry/orangeopensource/cassandra-bootstrap:0.1.2
+      configMapName: cassandra-configmap-v1
+      service:
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: seb.pns.svc.rickaastley.p.fti.net.
+      dataCapacity: "20Gi"
+      dataStorageClass: "local-storage"
+      #imagepullpolicy: IfNotPresent
+      imagepullpolicy: Always
+      hardAntiAffinity: true
+      deletePVC: false
+      autoPilot: false
+      gcStdout: false
+      autoUpdateSeedList: false
+      debug: false
+      maxPodUnavailable: 1
+      nodesPerRacks: 1
+      runAsUser: 999
+      resources:         
+        requests:
+          cpu: '2'
+          memory: 4Gi
+        limits:
+          cpu: '2'
+          memory: 4Gi
+    status:
+      seedlist:
+        - cassandra-demo-dc1-rack1-0.seb.pns.svc.rickaastley.p.fti.net
+        - cassandra-demo-dc1-rack1-1.seb.pns.svc.rickaastley.p.fti.net
+#        - cassandra-demo-dc1-rack2-0.seb.pns.svc.rickaastley.p.fti.net        
+#        - cassandra-demo-dc1-rack3-0.seb.pns.svc.rickaastley.p.fti.net
+        - cassandra-demo-dc2-rack4-0.seb.pns.svc.rickaastley.p.fti.net
+        - cassandra-demo-dc2-rack4-1.seb.pns.svc.rickaastley.p.fti.net
+  override:
+    dex-sallamand-kaas-prod-priv-sph:
+      spec:
+        topology:
+          dc:
+            - name: dc1
+              nodesPerRacks: 2
+              numTokens: 256
+              labels:
+                location.dfy.orange.com/site : Valbonne
+                location.dfy.orange.com/building : HT2
+              rack:
+                - name: rack1
+                  labels: 
+                    location.dfy.orange.com/room : Salle_1
+                    location.dfy.orange.com/street : Rue_9
+#                - name: rack2
+#                  labels: 
+#                    location.dfy.orange.com/room : Salle_1
+#                    location.dfy.orange.com/street : Rue_10
+#                - name: rack3
+#                  labels: 
+#                    location.dfy.orange.com/room : Salle_1
+#                    location.dfy.orange.com/street : Rue_11
+
+    dex-sallamand-kaas-prod-priv-bgl:
+      spec:
+        imagepullpolicy: IfNotPresent
+        topology:
+          dc:
+            - name: dc2
+              nodesPerRacks: 2
+              numTokens: 256
+              labels:
+                location.dfy.orange.com/site : Bagnolet
+                location.dfy.orange.com/building : Immeuble_Gambetta
+              rack:
+                - name: rack4
+                  labels: 
+                    location.dfy.orange.com/room : Salle_B2
+                    location.dfy.orange.com/street : Rue_3
+                    location.dfy.orange.com/bay : "1"
+#                - name: rack5
+#                  labels: 
+#                    location.dfy.orange.com/room : Salle_B2
+#                    location.dfy.orange.com/street : Rue_6
+#                    location.dfy.orange.com/bay : "5"
+#                - name: rack6
+#                  labels: 
+#                    location.dfy.orange.com/room : Salle_B2
+#                    location.dfy.orange.com/street : Rue_5
+#                    location.dfy.orange.com/bay : "10"
+

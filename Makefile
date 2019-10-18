@@ -192,24 +192,33 @@ debug-telepresence:
 #	--also-proxy 172.18.0.0/16
 
 
+#ifeq (run,$(firstword $(MAKECMDGOALS)))
+#ifeq ($(firstword $(MAKECMDGOALS)), $(filter $(firstword $(MAKECMDGOALS)), run run-local run-docker)
+ifneq (,$(filter $(firstword $(MAKECMDGOALS)),run run-local run-docker))
+  RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  $(eval $(RUN_ARGS):;@:)
+endif
+
+
+NAMESPACE ?= cassandra-demo
 # Run the development environment (in local go env) in the background using local ~/.kube/config
 .PHONY: run
 run:
 	export POD_NAME=multi-caaskop; \
-	export WATCH_NAMESPACE=cassandra; \
+	export WATCH_NAMESPACE=$(NAMESPACE); \
 	export LOG_LEVEL=Debug; \
-	operator-sdk up local --namespace cassandra-demo  --operator-flags "dex-kaas-prod-priv-sph dex-kaas-prod-priv-bgl"
+	operator-sdk up local --namespace cassandra-demo  --operator-flags "$(RUN_ARGS)"
 
 run-local:
 	export POD_NAME=multi-caaskop; \
-	export WATCH_NAMESPACE=cassandra; \
+	export WATCH_NAMESPACE=$(NAMESPACE); \
 	export LOG_LEVEL=Debug; \
-	./build/_output/bin/multicluster-cassandra-operator-$(GOOS) dex-kaas-prod-priv-sph dex-kaas-prod-priv-bgl
+	./build/_output/bin/multicluster-cassandra-operator-$(GOOS) $(RUN_ARGS)
 
 
-docker-run:
+run-docker:
 	docker rm multi-casskop || true
-	docker run --name multi-casskop -d -e KUBECONFIG=/root/.kube/config -e WATCH_NAMESPACE=cassandra -v $(KUBECONFIG):/root/.kube/config $(REPOSITORY):$(VERSION) dex-kaas-prod-priv-sph dex-kaas-prod-priv-bgl
+	docker run --name multi-casskop -d -e KUBECONFIG=/root/.kube/config -e WATCH_NAMESPACE=$(NAMESPACE) -v $(KUBECONFIG):/root/.kube/config $(REPOSITORY):$(VERSION) $(RUN_ARGS)
 	docker logs -f multi-casskop
 
 .PHONY: push
