@@ -151,7 +151,6 @@ build:
 	operator-sdk generate k8s
 	@echo "Build Cassandra Operator"
 	operator-sdk build $(REPOSITORY):$(VERSION) --image-build-args "--build-arg https_proxy=$$https_proxy --build-arg http_proxy=$$http_proxy"
-	#go build -o /Users/seb/gomac/src/github.com/Orange-OpenSource/multicluster-cassandra-operator/build/_output/bin/multicluster-cassandra-operator -gcflags all=-trimpath=/Users/seb/gomac/src/github.com/Orange-OpenSource -asmflags all=-trimpath=/Users/seb/gomac/src/github.com/Orange-OpenSource github.com/Orange-OpenSource/multicluster-cassandra-operator/cmd/manager
 ifdef PUSHLATEST
 	docker tag $(REPOSITORY):$(VERSION) $(REPOSITORY):latest
 endif
@@ -162,7 +161,7 @@ build-local:
 	operator-sdk version
 	operator-sdk generate k8s
 	@echo "Build Cassandra Operator for $(GOOS)"
-	go build -o /Users/seb/gomac/src/github.com/Orange-OpenSource/multicluster-cassandra-operator/build/_output/bin/multicluster-cassandra-operator-$(GOOS) -gcflags all=-trimpath=/Users/seb/gomac/src/github.com/Orange-OpenSource -asmflags all=-trimpath=/Users/seb/gomac/src/github.com/Orange-OpenSource github.com/Orange-OpenSource/multicluster-cassandra-operator/cmd/manager
+	go build -o build/_output/bin/multicluster-cassandra-operator-$(GOOS) -gcflags all=-trimpath=github.com/Orange-OpenSource -asmflags all=-trimpath=github.com/Orange-OpenSource github.com/Orange-OpenSource/multicluster-cassandra-operator/cmd/manager
 
 # Run a shell into the development docker image
 .PHONY: docker-build
@@ -192,8 +191,6 @@ debug-telepresence:
 #	--also-proxy 172.18.0.0/16
 
 
-#ifeq (run,$(firstword $(MAKECMDGOALS)))
-#ifeq ($(firstword $(MAKECMDGOALS)), $(filter $(firstword $(MAKECMDGOALS)), run run-local run-docker)
 ifneq (,$(filter $(firstword $(MAKECMDGOALS)),run run-local run-docker))
   RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
   $(eval $(RUN_ARGS):;@:)
