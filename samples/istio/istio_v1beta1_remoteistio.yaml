@@ -1,0 +1,31 @@
+apiVersion: istio.banzaicloud.io/v1beta1
+kind: RemoteIstio
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: remoteistio-sample
+spec:
+  autoInjectionNamespaces:
+  - "default"
+  - "cassandra-demo"
+  includeIPRanges: "*"
+  excludeIPRanges: ""
+  enabledServices:
+  - name: "istio-pilot"
+    labelSelector: "istio=pilot"
+  - name: "istio-policy"
+    labelSelector: "istio-mixer-type=policy"
+  - name: "istio-statsd"
+    labelSelector: "statsd-prom-bridge"
+  - name: "istio-telemetry"
+    labelSelector: "istio-mixer-type=telemetry"
+  - name: "zipkin"
+    labelSelector: "app=jaeger"
+  defaultResources:
+    requests:
+      cpu: 10m
+  citadel:
+      enabled: true
+  sidecarInjector:
+      enabled: true
+      replicaCount: 1
